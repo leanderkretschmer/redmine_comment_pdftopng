@@ -42,6 +42,13 @@
   <%= text_field_tag "settings[thumbnail_max_px]", settings["thumbnail_max_px"].to_s, size: 10 %>
 </p>
 
+<p>
+  <%= button_to l(:button_rcpp_render_missing),
+                { controller: "redmine_comment_pdftopng", action: "render_missing" },
+                method: :post,
+                data: { confirm: l(:text_rcpp_render_missing_confirm) } %>
+</p>
+
 <fieldset class="box">
   <legend><%= l(:label_rcpp_conversion_log) %></legend>
   <% begin %>

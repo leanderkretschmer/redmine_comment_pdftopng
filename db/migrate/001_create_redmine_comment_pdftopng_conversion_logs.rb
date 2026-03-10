@@ -1,5 +1,12 @@
 class CreateRedmineCommentPdftopngConversionLogs < ActiveRecord::Migration[6.1]
   def change
+    if table_exists?(:redmine_comment_pdftopng_conversion_logs)
+      add_index :redmine_comment_pdftopng_conversion_logs, :created_at unless index_exists?(:redmine_comment_pdftopng_conversion_logs, :created_at)
+      add_index :redmine_comment_pdftopng_conversion_logs, :issue_id unless index_exists?(:redmine_comment_pdftopng_conversion_logs, :issue_id)
+      add_index :redmine_comment_pdftopng_conversion_logs, :pdf_attachment_id unless index_exists?(:redmine_comment_pdftopng_conversion_logs, :pdf_attachment_id)
+      return
+    end
+
     create_table :redmine_comment_pdftopng_conversion_logs do |t|
       t.integer :project_id
       t.integer :issue_id

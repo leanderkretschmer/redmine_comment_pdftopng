@@ -16,3 +16,5 @@ en:
   label_rcpp_log_empty: "No conversions recorded yet."
   label_rcpp_log_unavailable: "Log table not available yet. Run plugin migrations."
   label_rcpp_generated_images: "Generated PNGs"
+  button_rcpp_render_missing: "Render missing PDFs now"
+  text_rcpp_render_missing_confirm: "This will scan the configured scope and convert missing PDF comment attachments. Continue?"
