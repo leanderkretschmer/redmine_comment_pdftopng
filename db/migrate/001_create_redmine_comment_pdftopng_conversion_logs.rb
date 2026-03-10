@@ -1,9 +1,13 @@
 class CreateRedmineCommentPdftopngConversionLogs < ActiveRecord::Migration[6.1]
   def change
+    idx_created_at = "idx_rcpp_conv_logs_created_at"
+    idx_issue_id = "idx_rcpp_conv_logs_issue_id"
+    idx_pdf_attachment_id = "idx_rcpp_conv_logs_pdf_attachment_id"
+
     if table_exists?(:redmine_comment_pdftopng_conversion_logs)
-      add_index :redmine_comment_pdftopng_conversion_logs, :created_at unless index_exists?(:redmine_comment_pdftopng_conversion_logs, :created_at)
-      add_index :redmine_comment_pdftopng_conversion_logs, :issue_id unless index_exists?(:redmine_comment_pdftopng_conversion_logs, :issue_id)
-      add_index :redmine_comment_pdftopng_conversion_logs, :pdf_attachment_id unless index_exists?(:redmine_comment_pdftopng_conversion_logs, :pdf_attachment_id)
+      add_index :redmine_comment_pdftopng_conversion_logs, :created_at, name: idx_created_at unless index_exists?(:redmine_comment_pdftopng_conversion_logs, :created_at, name: idx_created_at)
+      add_index :redmine_comment_pdftopng_conversion_logs, :issue_id, name: idx_issue_id unless index_exists?(:redmine_comment_pdftopng_conversion_logs, :issue_id, name: idx_issue_id)
+      add_index :redmine_comment_pdftopng_conversion_logs, :pdf_attachment_id, name: idx_pdf_attachment_id unless index_exists?(:redmine_comment_pdftopng_conversion_logs, :pdf_attachment_id, name: idx_pdf_attachment_id)
       return
     end
 
@@ -23,8 +27,8 @@ class CreateRedmineCommentPdftopngConversionLogs < ActiveRecord::Migration[6.1]
       t.datetime :created_at, null: false
     end
 
-    add_index :redmine_comment_pdftopng_conversion_logs, :created_at
-    add_index :redmine_comment_pdftopng_conversion_logs, :issue_id
-    add_index :redmine_comment_pdftopng_conversion_logs, :pdf_attachment_id
+    add_index :redmine_comment_pdftopng_conversion_logs, :created_at, name: idx_created_at
+    add_index :redmine_comment_pdftopng_conversion_logs, :issue_id, name: idx_issue_id
+    add_index :redmine_comment_pdftopng_conversion_logs, :pdf_attachment_id, name: idx_pdf_attachment_id
   end
 end
