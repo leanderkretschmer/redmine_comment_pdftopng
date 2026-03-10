@@ -5,6 +5,7 @@ module RedmineCommentPdftopng
     def perform(trigger_user_id = nil)
       trigger_user = trigger_user_id ? User.find_by(id: trigger_user_id) : nil
       journals = eligible_journals
+      Rails.logger.info("[redmine_comment_pdftopng] render_missing start user_id=#{trigger_user_id} journals=#{journals.count}")
 
       journals.find_each(batch_size: 200) do |journal|
         issue = journal.journalized
@@ -17,6 +18,8 @@ module RedmineCommentPdftopng
 
         Processor.new(issue: issue, journal: journal, user: (trigger_user || User.anonymous)).call
       end
+
+      Rails.logger.info("[redmine_comment_pdftopng] render_missing done user_id=#{trigger_user_id}")
     end
 
     private
