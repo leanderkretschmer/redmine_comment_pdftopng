@@ -5,7 +5,7 @@ module RedmineCommentPdftopng
     def perform(trigger_user_id = nil)
       trigger_user = trigger_user_id ? User.find_by(id: trigger_user_id) : nil
       journals = eligible_journals
-      Rails.logger.info("[redmine_comment_pdftopng] render_missing start user_id=#{trigger_user_id} journals=#{journals.count}")
+      Rails.logger.info("[PDF-PNG] render_missing start user_id=#{trigger_user_id} journals=#{journals.count}")
 
       journals.find_each(batch_size: 200) do |journal|
         issue = journal.journalized
@@ -19,7 +19,7 @@ module RedmineCommentPdftopng
         Processor.new(issue: issue, journal: journal, user: (trigger_user || User.anonymous)).call
       end
 
-      Rails.logger.info("[redmine_comment_pdftopng] render_missing done user_id=#{trigger_user_id}")
+      Rails.logger.info("[PDF-PNG] render_missing done user_id=#{trigger_user_id}")
     end
 
     private
@@ -67,18 +67,10 @@ module RedmineCommentPdftopng
       safe_base = base.gsub(/[^\w.\- ]+/, "_").strip
       base_key = "#{safe_base}_a#{pdf_attachment.id}"
 
-      png_exists =
-        issue.attachments.to_a.any? do |a|
-          fn = a.filename.to_s
-          fn.start_with?(base_key) && fn.downcase.end_with?(".png")
-        end
-
-      ok_log_exists =
-        RedmineCommentPdftopng::ConversionLog
-          .where(pdf_attachment_id: pdf_attachment.id, status: "ok")
-          .exists?
-
-      !(png_exists && ok_log_exists)
+      !issue.attachments.to_a.any? do |a|
+        fn = a.filename.to_s
+        fn.start_with?(base_key) && fn.downcase.end_with?(".png")
+      end
     rescue StandardError
       true
     end

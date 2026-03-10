@@ -1,5 +1,7 @@
 module RedmineCommentPdftopng
   class Processor
+    LOG_PREFIX = "[PDF-PNG]".freeze
+
     def initialize(issue:, journal:, user:)
       @issue = issue
       @journal = journal
@@ -14,7 +16,7 @@ module RedmineCommentPdftopng
         convert_pdf_attachment(pdf)
       end
     rescue StandardError => e
-      Rails.logger.error("[redmine_comment_pdftopng] #{e.class}: #{e.message}")
+      Rails.logger.error("#{LOG_PREFIX} #{e.class}: #{e.message}")
       Rails.logger.error(e.backtrace.join("\n")) if e.backtrace
     end
 
@@ -58,7 +60,14 @@ module RedmineCommentPdftopng
       pdf_path = attachment_path(pdf_attachment)
       return unless pdf_path
 
-      Rails.logger.info("[redmine_comment_pdftopng] issue=#{@issue.id} journal=#{@journal.id} pdf_attachment=#{pdf_attachment.id} filename=#{pdf_attachment.filename}")
+      Rails.logger.info("#{LOG_PREFIX} start issue=#{@issue.id} journal=#{@journal.id} pdf_attachment=#{pdf_attachment.id} filename=#{pdf_attachment.filename}")
+
+      existing_pngs = existing_png_attachments(pdf_attachment)
+      if existing_pngs.any?
+        update_journal_notes(existing_pngs)
+        Rails.logger.info("#{LOG_PREFIX} reuse issue=#{@issue.id} pdf_attachment=#{pdf_attachment.id} pngs=#{existing_pngs.size}")
+        return
+      end
 
       converter = PdfConverter.new(
         pdf_path: pdf_path,
@@ -72,11 +81,9 @@ module RedmineCommentPdftopng
         result = converter.convert
         png_attachments = attach_pngs(pdf_attachment, result.output_files)
         update_journal_notes(png_attachments) if png_attachments.any?
-        write_conversion_log(pdf_attachment, png_attachments, status: "ok", error_text: nil)
-        Rails.logger.info("[redmine_comment_pdftopng] done issue=#{@issue.id} pdf_attachment=#{pdf_attachment.id} pngs=#{png_attachments.size}")
+        Rails.logger.info("#{LOG_PREFIX} done issue=#{@issue.id} pdf_attachment=#{pdf_attachment.id} pngs=#{png_attachments.size}")
       rescue StandardError => e
-        write_conversion_log(pdf_attachment, [], status: "error", error_text: "#{e.class}: #{e.message}")
-        Rails.logger.error("[redmine_comment_pdftopng] failed issue=#{@issue.id} pdf_attachment=#{pdf_attachment.id} #{e.class}: #{e.message}")
+        Rails.logger.error("#{LOG_PREFIX} failed issue=#{@issue.id} pdf_attachment=#{pdf_attachment.id} #{e.class}: #{e.message}")
         raise
       end
     end
@@ -90,9 +97,7 @@ module RedmineCommentPdftopng
     end
 
     def attach_pngs(pdf_attachment, png_paths)
-      base = File.basename(pdf_attachment.filename.to_s, File.extname(pdf_attachment.filename.to_s))
-      safe_base = base.gsub(/[^\w.\- ]+/, "_").strip
-      base_key = "#{safe_base}_a#{pdf_attachment.id}"
+      base_key = base_key_for(pdf_attachment)
 
       desired_filenames =
         if Settings.render_mode == "all_pages"
@@ -102,7 +107,6 @@ module RedmineCommentPdftopng
         end
 
       existing = @issue.attachments.to_a.index_by(&:filename)
-      created = []
 
       png_paths.zip(desired_filenames).each do |png_path, filename|
         next if existing.key?(filename)
@@ -110,11 +114,22 @@ module RedmineCommentPdftopng
         attachment = build_png_attachment(filename, png_path, pdf_attachment)
         next unless attachment
 
-        created << attachment
         existing[filename] = attachment
       end
 
       desired_filenames.filter_map { |fn| existing[fn] }
+    end
+
+    def existing_png_attachments(pdf_attachment)
+      base_key = base_key_for(pdf_attachment)
+      @issue
+        .attachments
+        .to_a
+        .select do |a|
+          fn = a.filename.to_s
+          fn.start_with?(base_key) && fn.downcase.end_with?(".png")
+        end
+        .sort_by { |a| a.filename.to_s }
     end
 
     def build_png_attachment(filename, png_path, pdf_attachment)
@@ -139,7 +154,7 @@ module RedmineCommentPdftopng
 
       nil
     rescue StandardError => e
-      Rails.logger.error("[redmine_comment_pdftopng] attach failed: #{e.class}: #{e.message}")
+      Rails.logger.error("#{LOG_PREFIX} attach failed: #{e.class}: #{e.message}")
       nil
     end
 
@@ -158,28 +173,10 @@ module RedmineCommentPdftopng
       @journal.save
     end
 
-    def write_conversion_log(pdf_attachment, png_attachments, status:, error_text:)
-      return unless defined?(RedmineCommentPdftopng::ConversionLog)
-
-      RedmineCommentPdftopng::ConversionLog.create!(
-        project_id: @issue.project_id,
-        issue_id: @issue.id,
-        journal_id: @journal.id,
-        user_id: @user&.id,
-        pdf_attachment_id: pdf_attachment.id,
-        pdf_filename: pdf_attachment.filename.to_s,
-        render_mode: Settings.render_mode,
-        quality: Settings.quality,
-        tool: Settings.tool,
-        png_filenames: png_attachments.map { |a| a.filename.to_s }.join("\n"),
-        status: status,
-        error_text: error_text,
-        created_at: Time.current
-      )
-    rescue ActiveRecord::StatementInvalid, ActiveRecord::NoDatabaseError => e
-      Rails.logger.warn("[redmine_comment_pdftopng] log skipped: #{e.class}: #{e.message}")
-    rescue StandardError => e
-      Rails.logger.warn("[redmine_comment_pdftopng] log failed: #{e.class}: #{e.message}")
+    def base_key_for(pdf_attachment)
+      base = File.basename(pdf_attachment.filename.to_s, File.extname(pdf_attachment.filename.to_s))
+      safe_base = base.gsub(/[^\w.\- ]+/, "_").strip
+      "#{safe_base}_a#{pdf_attachment.id}"
     end
   end
 end
