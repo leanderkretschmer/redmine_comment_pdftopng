@@ -10,12 +10,11 @@ module RedmineCommentPdftopng
       raw["enabled"].to_s == "1"
     end
 
-    def scope_mode
-      raw["scope_mode"].presence || "all"
-    end
-
     def project_ids
-      Array(raw["project_ids"]).map(&:to_i).reject(&:zero?)
+      value = raw["project_ids"]
+      return value.map(&:to_i).reject(&:zero?) if value.is_a?(Array)
+
+      value.to_s.split(/[\s,;]+/).map(&:to_i).reject(&:zero?)
     end
 
     def issue_ids
@@ -36,6 +35,14 @@ module RedmineCommentPdftopng
 
     def thumbnail_max_px
       raw["thumbnail_max_px"].to_i
+    end
+
+    def author_mode
+      raw["author_mode"].presence || "comment"
+    end
+
+    def fixed_user_id
+      raw["fixed_user_id"].to_i
     end
   end
 end

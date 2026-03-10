@@ -16,7 +16,8 @@ module RedmineCommentPdftopng
 
         next unless pdfs.any? { |pdf| missing_for_issue?(issue, pdf) }
 
-        Processor.new(issue: issue, journal: journal, user: (trigger_user || User.anonymous)).call
+        user = journal.user || trigger_user || User.anonymous
+        Processor.new(issue: issue, journal: journal, user: user).call
       end
 
       Rails.logger.info("[PDF-PNG] render_missing done user_id=#{trigger_user_id}")
@@ -32,18 +33,20 @@ module RedmineCommentPdftopng
           .where(journal_details: { property: "attachment" })
           .distinct
 
-      case Settings.scope_mode
-      when "projects"
-        ids = Settings.project_ids
-        return scope.none if ids.empty?
+      project_ids = Settings.project_ids
+      issue_ids = Settings.issue_ids
+      return scope if project_ids.empty? && issue_ids.empty?
+
+      if project_ids.any?
         scope = scope.joins("INNER JOIN issues ON issues.id = journals.journalized_id")
-        scope.where("issues.project_id IN (?)", ids)
-      when "issues"
-        ids = Settings.issue_ids
-        return scope.none if ids.empty?
-        scope.where(journalized_id: ids)
+      end
+
+      if project_ids.any? && issue_ids.any?
+        scope.where("(issues.project_id IN (?) OR journals.journalized_id IN (?))", project_ids, issue_ids)
+      elsif project_ids.any?
+        scope.where("issues.project_id IN (?)", project_ids)
       else
-        scope
+        scope.where(journalized_id: issue_ids)
       end
     end
 

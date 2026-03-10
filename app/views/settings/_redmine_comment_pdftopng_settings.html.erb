@@ -4,17 +4,8 @@
 </p>
 
 <p>
-  <label><%= l(:label_rcpp_scope_mode) %></label>
-  <%= select_tag "settings[scope_mode]", options_for_select([[l(:label_rcpp_scope_all), "all"], [l(:label_rcpp_scope_projects), "projects"], [l(:label_rcpp_scope_issues), "issues"]], settings["scope_mode"].presence || "all") %>
-</p>
-
-<p>
   <label><%= l(:label_rcpp_project_ids) %></label>
-  <% selected_project_ids = Array(settings["project_ids"]).map(&:to_i) %>
-  <%= select_tag "settings[project_ids][]",
-                 options_from_collection_for_select(Project.sorted.to_a, "id", "name", selected_project_ids),
-                 multiple: true,
-                 size: 10 %>
+  <%= text_field_tag "settings[project_ids]", settings["project_ids"].to_s, size: 80 %>
 </p>
 
 <p>
@@ -40,6 +31,16 @@
 <p>
   <label><%= l(:label_rcpp_thumbnail_max_px) %></label>
   <%= text_field_tag "settings[thumbnail_max_px]", settings["thumbnail_max_px"].to_s, size: 10 %>
+</p>
+
+<p>
+  <label><%= l(:label_rcpp_author_mode) %></label>
+  <%= select_tag "settings[author_mode]", options_for_select([[l(:label_rcpp_author_comment), "comment"], [l(:label_rcpp_author_fixed), "fixed"]], settings["author_mode"].presence || "comment") %>
+</p>
+
+<p>
+  <label><%= l(:label_rcpp_fixed_user_id) %></label>
+  <%= text_field_tag "settings[fixed_user_id]", settings["fixed_user_id"].to_s, size: 10 %>
 </p>
 
 <p>

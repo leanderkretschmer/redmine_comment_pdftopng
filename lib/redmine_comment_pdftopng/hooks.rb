@@ -17,7 +17,7 @@ module RedmineCommentPdftopng
     def run_for_context(context)
       issue = context[:issue]
       journal = context[:journal]
-      user = context[:user] || User.current
+      user = (journal && journal.respond_to?(:user) ? journal.user : nil) || context[:user] || User.current
 
       return unless issue && journal
 
