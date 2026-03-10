@@ -41,3 +41,57 @@
   <label><%= l(:label_rcpp_thumbnail_max_px) %></label>
   <%= text_field_tag "settings[thumbnail_max_px]", settings["thumbnail_max_px"].to_s, size: 10 %>
 </p>
+
+<fieldset class="box">
+  <legend><%= l(:label_rcpp_conversion_log) %></legend>
+  <% begin %>
+    <% logs = RedmineCommentPdftopng::ConversionLog.order(id: :desc).limit(50).to_a %>
+    <% if logs.empty? %>
+      <em><%= l(:label_rcpp_log_empty) %></em>
+    <% else %>
+      <div class="autoscroll">
+        <table class="list">
+          <thead>
+            <tr>
+              <th><%= l(:label_date) %></th>
+              <th><%= l(:label_issue) %></th>
+              <th><%= l(:label_attachment) %></th>
+              <th><%= l(:label_rcpp_render_mode) %></th>
+              <th><%= l(:label_rcpp_quality) %></th>
+              <th><%= l(:label_rcpp_tool) %></th>
+              <th><%= l(:field_status) %></th>
+              <th><%= l(:label_rcpp_generated_images) %></th>
+            </tr>
+          </thead>
+          <tbody>
+            <% logs.each do |log| %>
+              <tr class="<%= cycle('odd', 'even') %>">
+                <td><%= format_time(log.created_at) %></td>
+                <td>
+                  <% if log.issue_id.present? %>
+                    <%= link_to "##{log.issue_id}", issue_path(log.issue_id) %>
+                  <% end %>
+                </td>
+                <td><%= log.pdf_filename.to_s %></td>
+                <td><%= log.render_mode.to_s %></td>
+                <td><%= log.quality.to_s %></td>
+                <td><%= log.tool.to_s %></td>
+                <td><%= log.status.to_s %></td>
+                <td>
+                  <% if log.status.to_s == "error" %>
+                    <%= log.error_text.to_s %>
+                  <% else %>
+                    <% files = log.png_filenames.to_s.split("\n").reject(&:blank?) %>
+                    <%= files.join(", ") %>
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% end %>
+  <% rescue StandardError %>
+    <em><%= l(:label_rcpp_log_unavailable) %></em>
+  <% end %>
+</fieldset>

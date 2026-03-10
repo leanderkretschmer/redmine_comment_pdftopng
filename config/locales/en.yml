@@ -12,3 +12,7 @@ en:
   label_rcpp_quality: "Quality preset"
   label_rcpp_tool: "Backend"
   label_rcpp_thumbnail_max_px: "Thumbnail max size (px)"
+  label_rcpp_conversion_log: "Conversion log (last 50)"
+  label_rcpp_log_empty: "No conversions recorded yet."
+  label_rcpp_log_unavailable: "Log table not available yet. Run plugin migrations."
+  label_rcpp_generated_images: "Generated PNGs"

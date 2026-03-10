@@ -58,6 +58,8 @@ module RedmineCommentPdftopng
       pdf_path = attachment_path(pdf_attachment)
       return unless pdf_path
 
+      Rails.logger.info("[redmine_comment_pdftopng] issue=#{@issue.id} journal=#{@journal.id} pdf_attachment=#{pdf_attachment.id} filename=#{pdf_attachment.filename}")
+
       converter = PdfConverter.new(
         pdf_path: pdf_path,
         render_mode: Settings.render_mode,
@@ -66,9 +68,17 @@ module RedmineCommentPdftopng
         tool: Settings.tool
       )
 
-      result = converter.convert
-      png_attachments = attach_pngs(pdf_attachment, result.output_files)
-      update_journal_notes(png_attachments) if png_attachments.any?
+      begin
+        result = converter.convert
+        png_attachments = attach_pngs(pdf_attachment, result.output_files)
+        update_journal_notes(png_attachments) if png_attachments.any?
+        write_conversion_log(pdf_attachment, png_attachments, status: "ok", error_text: nil)
+        Rails.logger.info("[redmine_comment_pdftopng] done issue=#{@issue.id} pdf_attachment=#{pdf_attachment.id} pngs=#{png_attachments.size}")
+      rescue StandardError => e
+        write_conversion_log(pdf_attachment, [], status: "error", error_text: "#{e.class}: #{e.message}")
+        Rails.logger.error("[redmine_comment_pdftopng] failed issue=#{@issue.id} pdf_attachment=#{pdf_attachment.id} #{e.class}: #{e.message}")
+        raise
+      end
     end
 
     def attachment_path(attachment)
@@ -146,6 +156,30 @@ module RedmineCommentPdftopng
 
       @journal.notes = notes + "\n\n" + additions.join("\n")
       @journal.save
+    end
+
+    def write_conversion_log(pdf_attachment, png_attachments, status:, error_text:)
+      return unless defined?(RedmineCommentPdftopng::ConversionLog)
+
+      RedmineCommentPdftopng::ConversionLog.create!(
+        project_id: @issue.project_id,
+        issue_id: @issue.id,
+        journal_id: @journal.id,
+        user_id: @user&.id,
+        pdf_attachment_id: pdf_attachment.id,
+        pdf_filename: pdf_attachment.filename.to_s,
+        render_mode: Settings.render_mode,
+        quality: Settings.quality,
+        tool: Settings.tool,
+        png_filenames: png_attachments.map { |a| a.filename.to_s }.join("\n"),
+        status: status,
+        error_text: error_text,
+        created_at: Time.current
+      )
+    rescue ActiveRecord::StatementInvalid, ActiveRecord::NoDatabaseError => e
+      Rails.logger.warn("[redmine_comment_pdftopng] log skipped: #{e.class}: #{e.message}")
+    rescue StandardError => e
+      Rails.logger.warn("[redmine_comment_pdftopng] log failed: #{e.class}: #{e.message}")
     end
   end
 end
