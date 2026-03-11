@@ -6,6 +6,7 @@ module RedmineCommentPdftopng
   class PdfConverter
     LOG_PREFIX = "[PDF-PNG]".freeze
     ConversionResult = Struct.new(:output_files, :tmp_dir, keyword_init: true)
+    MAGICK_LIMIT = "1GiB".freeze
 
     QUALITY_PRESETS = {
       "low" => { density: 72, compression: 9, max_px: 900 },
@@ -68,6 +69,7 @@ module RedmineCommentPdftopng
       density = effective_density(preset[:density], max_px)
 
       MiniMagick::Tool::Convert.new do |convert|
+        apply_resource_limits(convert)
         convert.density(density)
         convert << "#{@pdf_path}[0]"
         apply_png_options(convert, preset: preset, max_px: max_px)
@@ -88,6 +90,7 @@ module RedmineCommentPdftopng
       density = effective_density(preset[:density], max_px)
 
       MiniMagick::Tool::Convert.new do |convert|
+        apply_resource_limits(convert)
         convert.density(density)
         convert << "-scene" << "1"
         convert << @pdf_path
@@ -104,6 +107,12 @@ module RedmineCommentPdftopng
       convert << "-define" << "png:compression-level=#{preset[:compression]}"
       convert << "-strip"
       convert << "-resize" << "#{max_px}x#{max_px}>" if max_px
+    end
+
+    def apply_resource_limits(convert)
+      convert << "-limit" << "memory" << MAGICK_LIMIT
+      convert << "-limit" << "map" << MAGICK_LIMIT
+      convert << "-limit" << "disk" << MAGICK_LIMIT
     end
 
     def effective_density(preset_density, max_px)
