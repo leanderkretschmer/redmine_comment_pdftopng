@@ -123,11 +123,12 @@ module RedmineCommentPdftopng
         end
 
       existing = @issue.attachments.to_a.index_by(&:filename)
+      page_count = Settings.render_mode == "all_pages" ? png_paths.size : 1
 
-      png_paths.zip(desired_filenames).each do |png_path, filename|
+      png_paths.zip(desired_filenames).each_with_index do |(png_path, filename), idx|
         next if existing.key?(filename)
 
-        attachment = build_png_attachment(filename, png_path, pdf_attachment)
+        attachment = build_png_attachment(filename, png_path, pdf_attachment, page_index: idx + 1, page_count: page_count)
         next unless attachment
 
         existing[filename] = attachment
@@ -148,10 +149,10 @@ module RedmineCommentPdftopng
         .sort_by { |a| a.filename.to_s }
     end
 
-    def build_png_attachment(filename, png_path, pdf_attachment)
+    def build_png_attachment(filename, png_path, pdf_attachment, page_index:, page_count:)
       author = (@journal.respond_to?(:user) ? @journal.user : nil) || @user || User.anonymous
       return nil unless author
-      description = png_description_for(pdf_attachment)
+      description = png_description_for(pdf_attachment, page_index: page_index, page_count: page_count)
 
       File.open(png_path, "rb") do |io|
         uploaded =
@@ -199,12 +200,23 @@ module RedmineCommentPdftopng
       "#{safe_base}_a#{pdf_attachment.id}"
     end
 
-    def png_description_for(pdf_attachment)
+    def png_description_for(pdf_attachment, page_index:, page_count:)
       template = Settings.png_description_template.to_s
       filename = pdf_attachment.filename.to_s
-      template % { filename: filename }
+      page_index = page_index.to_i
+      page_count = page_count.to_i
+      page_index = 1 if page_index <= 0
+      page_count = 1 if page_count <= 0
+
+      desc =
+        template
+          .gsub("{filename}", filename)
+          .gsub("{page}", page_index.to_s)
+          .gsub("{pages}", page_count.to_s)
+
+      desc % { filename: filename, page: page_index, pages: page_count }
     rescue StandardError
-      template.presence || "generated from #{filename}"
+      "#{filename} Seite #{page_index}/#{page_count}"
     end
   end
 end

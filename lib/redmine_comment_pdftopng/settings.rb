@@ -57,7 +57,7 @@ module RedmineCommentPdftopng
     end
 
     def png_description_template
-      raw["png_description_template"].presence || "generated from %{filename}"
+      raw["png_description_template"].presence || "{filename} Seite {page}/{pages}"
     end
 
     def parse_identifier_list(value)
