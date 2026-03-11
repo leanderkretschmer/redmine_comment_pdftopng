@@ -79,13 +79,21 @@ module RedmineCommentPdftopng
 
       begin
         result = converter.convert
-        Rails.logger.info("#{LOG_PREFIX} converted pdf_attachment=#{pdf_attachment.id} output_files=#{result.output_files.size}")
-        if result.output_files.empty?
-          raise "converter produced no files"
+        begin
+          Rails.logger.info("#{LOG_PREFIX} converted pdf_attachment=#{pdf_attachment.id} output_files=#{result.output_files.size}")
+          if result.output_files.empty?
+            raise "converter produced no files"
+          end
+          png_attachments = attach_pngs(pdf_attachment, result.output_files)
+          update_journal_notes(png_attachments) if png_attachments.any?
+          Rails.logger.info("#{LOG_PREFIX} done issue=#{@issue.id} pdf_attachment=#{pdf_attachment.id} pngs=#{png_attachments.size}")
+        ensure
+          tmp_dir = result.respond_to?(:tmp_dir) ? result.tmp_dir.to_s : ""
+          if tmp_dir.present? && File.directory?(tmp_dir)
+            require "fileutils"
+            FileUtils.remove_entry(tmp_dir)
+          end
         end
-        png_attachments = attach_pngs(pdf_attachment, result.output_files)
-        update_journal_notes(png_attachments) if png_attachments.any?
-        Rails.logger.info("#{LOG_PREFIX} done issue=#{@issue.id} pdf_attachment=#{pdf_attachment.id} pngs=#{png_attachments.size}")
       rescue StandardError => e
         Rails.logger.error("#{LOG_PREFIX} failed issue=#{@issue.id} pdf_attachment=#{pdf_attachment.id} #{e.class}: #{e.message}")
         Rails.logger.error(e.backtrace.join("\n")) if e.backtrace
