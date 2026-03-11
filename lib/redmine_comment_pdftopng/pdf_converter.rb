@@ -82,7 +82,7 @@ module RedmineCommentPdftopng
 
     def convert_all_pages_with_minimagick(tmp_dir)
       preset = QUALITY_PRESETS.fetch(@quality, QUALITY_PRESETS.fetch("medium"))
-      max_px = preset[:max_px]
+      max_px = @thumbnail_max_px.positive? ? @thumbnail_max_px : preset[:max_px]
       out_pattern = File.join(tmp_dir, "page_%03d.png")
 
       MiniMagick::Tool::Convert.new do |convert|
