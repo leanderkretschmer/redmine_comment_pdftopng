@@ -5,7 +5,7 @@ require "fileutils"
 module RedmineCommentPdftopng
   class PdfConverter
     LOG_PREFIX = "[PDF-PNG]".freeze
-    ConversionResult = Struct.new(:output_files, keyword_init: true)
+    ConversionResult = Struct.new(:output_files, :tmp_dir, keyword_init: true)
 
     QUALITY_PRESETS = {
       "low" => { density: 72, compression: 9, max_px: 900 },
@@ -25,6 +25,7 @@ module RedmineCommentPdftopng
       ensure_backend_loaded!
 
       tmp_dir = Dir.mktmpdir("redmine_comment_pdftopng_")
+      success = false
       Rails.logger.info("#{LOG_PREFIX} convert mode=#{@render_mode} quality=#{@quality} pdf=#{@pdf_path}") if defined?(Rails)
 
       output_files =
@@ -46,9 +47,10 @@ module RedmineCommentPdftopng
         end
 
       files = Array(output_files).select { |p| p.to_s.present? && File.exist?(p.to_s) }
-      ConversionResult.new(output_files: files)
+      success = true
+      ConversionResult.new(output_files: files, tmp_dir: tmp_dir)
     ensure
-      FileUtils.remove_entry(tmp_dir) if tmp_dir && File.directory?(tmp_dir)
+      FileUtils.remove_entry(tmp_dir) if !success && tmp_dir && File.directory?(tmp_dir)
     end
 
     private
