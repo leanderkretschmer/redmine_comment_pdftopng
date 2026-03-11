@@ -1,8 +1,10 @@
 require "securerandom"
 require "tmpdir"
+require "fileutils"
 
 module RedmineCommentPdftopng
   class PdfConverter
+    LOG_PREFIX = "[PDF-PNG]".freeze
     ConversionResult = Struct.new(:output_files, keyword_init: true)
 
     QUALITY_PRESETS = {
@@ -23,14 +25,30 @@ module RedmineCommentPdftopng
       ensure_backend_loaded!
 
       tmp_dir = Dir.mktmpdir("redmine_comment_pdftopng_")
+      Rails.logger.info("#{LOG_PREFIX} convert mode=#{@render_mode} quality=#{@quality} pdf=#{@pdf_path}") if defined?(Rails)
+
       output_files =
-        if @render_mode == "all_pages"
-          convert_all_pages(tmp_dir)
-        else
-          [convert_cover(tmp_dir)]
+        begin
+          if @render_mode == "all_pages"
+            convert_all_pages(tmp_dir)
+          else
+            [convert_cover(tmp_dir)]
+          end
+        rescue StandardError => e
+          if defined?(Rails)
+            Rails.logger.error("#{LOG_PREFIX} convert failed #{e.class}: #{e.message}")
+            Rails.logger.error(e.backtrace.join("\n")) if e.backtrace
+            if e.message.to_s =~ /not allowed by the security policy|no decode delegate/i
+              Rails.logger.error("#{LOG_PREFIX} ImageMagick PDF support/policy blocks PDF. Enable PDF/ghostscript in ImageMagick policy.xml.")
+            end
+          end
+          raise
         end
 
-      ConversionResult.new(output_files: output_files)
+      files = Array(output_files).select { |p| p.to_s.present? && File.exist?(p.to_s) }
+      ConversionResult.new(output_files: files)
+    ensure
+      FileUtils.remove_entry(tmp_dir) if tmp_dir && File.directory?(tmp_dir)
     end
 
     private
