@@ -15,11 +15,11 @@ module RedmineCommentPdftopng
       "original" => { density: 600, compression: 0, max_px: nil }
     }.freeze
 
-    def initialize(pdf_path:, render_mode:, quality:, thumbnail_max_px:)
+    def initialize(pdf_path:, render_mode:, quality:, max_px:)
       @pdf_path = pdf_path
       @render_mode = render_mode
       @quality = quality
-      @thumbnail_max_px = thumbnail_max_px
+      @max_px = max_px
     end
 
     def convert
@@ -64,7 +64,7 @@ module RedmineCommentPdftopng
 
     def convert_cover(tmp_dir)
       preset = QUALITY_PRESETS.fetch(@quality, QUALITY_PRESETS.fetch("medium"))
-      max_px = @thumbnail_max_px.positive? ? @thumbnail_max_px : preset[:max_px]
+      max_px = @max_px.to_i.positive? ? @max_px.to_i : preset[:max_px]
       out_path = File.join(tmp_dir, "cover_#{SecureRandom.hex(8)}.png")
       density = effective_density(preset[:density], max_px)
 
@@ -85,7 +85,7 @@ module RedmineCommentPdftopng
 
     def convert_all_pages_with_minimagick(tmp_dir)
       preset = QUALITY_PRESETS.fetch(@quality, QUALITY_PRESETS.fetch("medium"))
-      max_px = @thumbnail_max_px.positive? ? @thumbnail_max_px : preset[:max_px]
+      max_px = @max_px.to_i.positive? ? @max_px.to_i : preset[:max_px]
       out_pattern = File.join(tmp_dir, "page_%03d.png")
       density = effective_density(preset[:density], max_px)
 

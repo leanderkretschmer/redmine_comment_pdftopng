@@ -45,12 +45,19 @@ module RedmineCommentPdftopng
       raw["render_mode"].presence || "cover"
     end
 
-    def quality
-      raw["quality"].presence || "medium"
-    end
-
     def thumbnail_max_px
       raw["thumbnail_max_px"].to_i
+    end
+
+    def page_max_px
+      value = raw["page_max_px"].to_i
+      return value if value.positive?
+
+      2500
+    end
+
+    def png_description_template
+      raw["png_description_template"].presence || "generated from %{filename}"
     end
 
     def parse_identifier_list(value)

@@ -26,13 +26,18 @@
 </p>
 
 <p>
-  <label><%= l(:label_rcpp_quality) %></label>
-  <%= select_tag "settings[quality]", options_for_select([["low", "low"], ["medium", "medium"], ["high", "high"], ["original", "original"]], settings["quality"].presence || "medium") %>
+  <label><%= l(:label_rcpp_thumbnail_max_px) %></label>
+  <%= text_field_tag "settings[thumbnail_max_px]", settings["thumbnail_max_px"].to_s, size: 10 %>
 </p>
 
 <p>
-  <label><%= l(:label_rcpp_thumbnail_max_px) %></label>
-  <%= text_field_tag "settings[thumbnail_max_px]", settings["thumbnail_max_px"].to_s, size: 10 %>
+  <label><%= l(:label_rcpp_page_max_px) %></label>
+  <%= text_field_tag "settings[page_max_px]", settings["page_max_px"].to_s, size: 10 %>
+</p>
+
+<p>
+  <label><%= l(:label_rcpp_png_description_template) %></label>
+  <%= text_field_tag "settings[png_description_template]", settings["png_description_template"].to_s, size: 80 %>
 </p>
 
 <p>

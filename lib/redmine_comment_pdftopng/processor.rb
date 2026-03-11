@@ -60,7 +60,7 @@ module RedmineCommentPdftopng
       return unless pdf_path
 
       Rails.logger.info("#{LOG_PREFIX} start issue=#{@issue.id} journal=#{@journal.id} pdf_attachment=#{pdf_attachment.id} filename=#{pdf_attachment.filename}")
-      Rails.logger.info("#{LOG_PREFIX} settings render_mode=#{Settings.render_mode} quality=#{Settings.quality} thumbnail_max_px=#{Settings.thumbnail_max_px}")
+      Rails.logger.info("#{LOG_PREFIX} settings render_mode=#{Settings.render_mode} thumbnail_max_px=#{Settings.thumbnail_max_px} page_max_px=#{Settings.page_max_px}")
       Rails.logger.info("#{LOG_PREFIX} pdf_path=#{pdf_path}")
 
       existing_pngs = existing_png_attachments(pdf_attachment)
@@ -70,11 +70,14 @@ module RedmineCommentPdftopng
         return
       end
 
+      render_mode = Settings.render_mode
+      max_px = render_mode == "all_pages" ? Settings.page_max_px : Settings.thumbnail_max_px
+      quality = render_mode == "all_pages" ? "original" : "medium"
       converter = PdfConverter.new(
         pdf_path: pdf_path,
-        render_mode: Settings.render_mode,
-        quality: Settings.quality,
-        thumbnail_max_px: Settings.thumbnail_max_px
+        render_mode: render_mode,
+        quality: quality,
+        max_px: max_px
       )
 
       begin
@@ -148,6 +151,7 @@ module RedmineCommentPdftopng
     def build_png_attachment(filename, png_path, pdf_attachment)
       author = (@journal.respond_to?(:user) ? @journal.user : nil) || @user || User.anonymous
       return nil unless author
+      description = png_description_for(pdf_attachment)
 
       File.open(png_path, "rb") do |io|
         uploaded =
@@ -161,7 +165,7 @@ module RedmineCommentPdftopng
           Attachment.new(
             container: @issue,
             author: author,
-            description: "generated from #{pdf_attachment.filename}"
+            description: description
           )
 
         attachment.file = uploaded
@@ -193,6 +197,14 @@ module RedmineCommentPdftopng
       base = File.basename(pdf_attachment.filename.to_s, File.extname(pdf_attachment.filename.to_s))
       safe_base = base.gsub(/[^\w.\- ]+/, "_").strip
       "#{safe_base}_a#{pdf_attachment.id}"
+    end
+
+    def png_description_for(pdf_attachment)
+      template = Settings.png_description_template.to_s
+      filename = pdf_attachment.filename.to_s
+      template % { filename: filename }
+    rescue StandardError
+      template.presence || "generated from #{filename}"
     end
   end
 end
