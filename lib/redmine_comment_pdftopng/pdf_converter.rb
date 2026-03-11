@@ -65,9 +65,10 @@ module RedmineCommentPdftopng
       preset = QUALITY_PRESETS.fetch(@quality, QUALITY_PRESETS.fetch("medium"))
       max_px = @thumbnail_max_px.positive? ? @thumbnail_max_px : preset[:max_px]
       out_path = File.join(tmp_dir, "cover_#{SecureRandom.hex(8)}.png")
+      density = effective_density(preset[:density], max_px)
 
       MiniMagick::Tool::Convert.new do |convert|
-        convert.density(preset[:density])
+        convert.density(density)
         convert << "#{@pdf_path}[0]"
         apply_png_options(convert, preset: preset, max_px: max_px)
         convert << out_path
@@ -84,9 +85,10 @@ module RedmineCommentPdftopng
       preset = QUALITY_PRESETS.fetch(@quality, QUALITY_PRESETS.fetch("medium"))
       max_px = @thumbnail_max_px.positive? ? @thumbnail_max_px : preset[:max_px]
       out_pattern = File.join(tmp_dir, "page_%03d.png")
+      density = effective_density(preset[:density], max_px)
 
       MiniMagick::Tool::Convert.new do |convert|
-        convert.density(preset[:density])
+        convert.density(density)
         convert << "-scene" << "1"
         convert << @pdf_path
         apply_png_options(convert, preset: preset, max_px: max_px)
@@ -102,6 +104,42 @@ module RedmineCommentPdftopng
       convert << "-define" << "png:compression-level=#{preset[:compression]}"
       convert << "-strip"
       convert << "-resize" << "#{max_px}x#{max_px}>" if max_px
+    end
+
+    def effective_density(preset_density, max_px)
+      return preset_density.to_i if max_px.blank? || max_px.to_i <= 0
+
+      dims = pdf_dimensions_at_72dpi
+      return preset_density.to_i if dims.nil?
+
+      max_dim = dims.max.to_f
+      return preset_density.to_i if max_dim <= 0
+
+      density_cap = (72.0 * (max_px.to_f / max_dim)).floor
+      density_cap = 30 if density_cap < 30
+      density = [preset_density.to_i, density_cap.to_i].min
+
+      Rails.logger.info("#{LOG_PREFIX} density preset=#{preset_density} cap=#{density_cap} effective=#{density}") if defined?(Rails) && density != preset_density.to_i
+      density
+    rescue StandardError => e
+      Rails.logger.warn("#{LOG_PREFIX} density calc failed #{e.class}: #{e.message}") if defined?(Rails)
+      preset_density.to_i
+    end
+
+    def pdf_dimensions_at_72dpi
+      out =
+        MiniMagick::Tool::Identify.new do |identify|
+          identify.density(72)
+          identify.format("%w %h")
+          identify << "#{@pdf_path}[0]"
+        end
+
+      w_str, h_str = out.to_s.strip.split(/\s+/, 2)
+      w = w_str.to_i
+      h = h_str.to_i
+      return nil if w <= 0 || h <= 0
+
+      [w, h]
     end
   end
 end
