@@ -1,4 +1,7 @@
-require_relative "redmine_comment_pdftopng/hooks"
+require_relative "redmine_comment_pdftopng/settings"
+require_relative "redmine_comment_pdftopng/pdf_converter"
+require_relative "redmine_comment_pdftopng/processor"
+require_relative "redmine_comment_pdftopng/journal_patch"
 
 module RedmineCommentPdftopng
 end
