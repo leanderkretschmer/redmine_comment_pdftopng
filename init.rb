@@ -14,13 +14,11 @@ Redmine::Plugin.register :redmine_comment_pdftopng do
 
   settings default: {
     "enabled" => "1",
-    "project_ids" => "",
+    "scope_mode" => "global",
+    "project_identifiers" => "",
     "issue_ids" => "",
     "render_mode" => "cover",
     "quality" => "medium",
-    "tool" => "mini_magick",
-    "thumbnail_max_px" => "900",
-    "author_mode" => "comment",
-    "fixed_user_id" => ""
+    "thumbnail_max_px" => "900"
   }, partial: "settings/redmine_comment_pdftopng_settings"
 end

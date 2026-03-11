@@ -23,11 +23,13 @@ module RedmineCommentPdftopng
     private
 
     def eligible_scope?
-      project_ids = Settings.project_ids
-      issue_ids = Settings.issue_ids
-      return true if project_ids.empty? && issue_ids.empty?
+      return true if Settings.scope_mode.to_s != "manual"
 
-      issue_ids.include?(@issue.id) || project_ids.include?(@issue.project_id)
+      project_identifiers = Settings.project_identifiers
+      issue_ids = Settings.issue_ids
+      return true if project_identifiers.empty? && issue_ids.empty?
+
+      issue_ids.include?(@issue.id) || project_identifiers.include?(@issue&.project&.identifier.to_s)
     end
 
     def pdf_attachments
@@ -70,8 +72,7 @@ module RedmineCommentPdftopng
         pdf_path: pdf_path,
         render_mode: Settings.render_mode,
         quality: Settings.quality,
-        thumbnail_max_px: Settings.thumbnail_max_px,
-        tool: Settings.tool
+        thumbnail_max_px: Settings.thumbnail_max_px
       )
 
       begin
@@ -130,7 +131,7 @@ module RedmineCommentPdftopng
     end
 
     def build_png_attachment(filename, png_path, pdf_attachment)
-      author = attachment_author
+      author = (@journal.respond_to?(:user) ? @journal.user : nil) || @user || User.anonymous
       return nil unless author
 
       File.open(png_path, "rb") do |io|
@@ -177,17 +178,6 @@ module RedmineCommentPdftopng
       base = File.basename(pdf_attachment.filename.to_s, File.extname(pdf_attachment.filename.to_s))
       safe_base = base.gsub(/[^\w.\- ]+/, "_").strip
       "#{safe_base}_a#{pdf_attachment.id}"
-    end
-
-    def attachment_author
-      if Settings.author_mode.to_s == "fixed"
-        fixed = User.find_by(id: Settings.fixed_user_id)
-        return fixed if fixed
-      end
-
-      return @journal.user if @journal.respond_to?(:user) && @journal.user
-
-      @user
     end
   end
 end

@@ -4,14 +4,21 @@
 </p>
 
 <p>
-  <label><%= l(:label_rcpp_project_ids) %></label>
-  <%= text_field_tag "settings[project_ids]", settings["project_ids"].to_s, size: 80 %>
+  <label><%= l(:label_rcpp_scope_mode) %></label>
+  <%= select_tag "settings[scope_mode]", options_for_select([[l(:label_rcpp_scope_global), "global"], [l(:label_rcpp_scope_manual), "manual"]], settings["scope_mode"].presence || "global") %>
 </p>
 
-<p>
-  <label><%= l(:label_rcpp_issue_ids) %></label>
-  <%= text_field_tag "settings[issue_ids]", settings["issue_ids"].to_s, size: 80 %>
-</p>
+<% if (settings["scope_mode"].presence || "global") == "manual" %>
+  <p>
+    <label><%= l(:label_rcpp_project_identifiers) %></label>
+    <%= text_field_tag "settings[project_identifiers]", settings["project_identifiers"].to_s, size: 80 %>
+  </p>
+
+  <p>
+    <label><%= l(:label_rcpp_issue_ids) %></label>
+    <%= text_field_tag "settings[issue_ids]", settings["issue_ids"].to_s, size: 80 %>
+  </p>
+<% end %>
 
 <p>
   <label><%= l(:label_rcpp_render_mode) %></label>
@@ -24,23 +31,8 @@
 </p>
 
 <p>
-  <label><%= l(:label_rcpp_tool) %></label>
-  <%= select_tag "settings[tool]", options_for_select([["MiniMagick", "mini_magick"], ["HexaPDF", "hexa_pdf"]], settings["tool"].presence || "mini_magick") %>
-</p>
-
-<p>
   <label><%= l(:label_rcpp_thumbnail_max_px) %></label>
   <%= text_field_tag "settings[thumbnail_max_px]", settings["thumbnail_max_px"].to_s, size: 10 %>
-</p>
-
-<p>
-  <label><%= l(:label_rcpp_author_mode) %></label>
-  <%= select_tag "settings[author_mode]", options_for_select([[l(:label_rcpp_author_comment), "comment"], [l(:label_rcpp_author_fixed), "fixed"]], settings["author_mode"].presence || "comment") %>
-</p>
-
-<p>
-  <label><%= l(:label_rcpp_fixed_user_id) %></label>
-  <%= text_field_tag "settings[fixed_user_id]", settings["fixed_user_id"].to_s, size: 10 %>
 </p>
 
 <p>

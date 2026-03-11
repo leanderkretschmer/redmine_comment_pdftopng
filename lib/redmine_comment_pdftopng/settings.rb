@@ -10,14 +10,34 @@ module RedmineCommentPdftopng
       raw["enabled"].to_s == "1"
     end
 
-    def project_ids
-      value = raw["project_ids"]
-      return value.map(&:to_i).reject(&:zero?) if value.is_a?(Array)
+    def scope_mode
+      raw["scope_mode"].presence || "global"
+    end
 
-      value.to_s.split(/[\s,;]+/).map(&:to_i).reject(&:zero?)
+    def project_identifiers
+      return [] unless scope_mode.to_s == "manual"
+
+      value = raw["project_identifiers"]
+      return parse_identifier_list(value) if value.present?
+
+      legacy = raw["project_ids"]
+      return [] if legacy.blank?
+
+      ids =
+        if legacy.is_a?(Array)
+          legacy.map(&:to_i).reject(&:zero?)
+        else
+          legacy.to_s.split(/[\s,;]+/).map(&:to_i).reject(&:zero?)
+        end
+
+      return [] if ids.empty?
+
+      Project.where(id: ids).pluck(:identifier).map(&:to_s)
     end
 
     def issue_ids
+      return [] unless scope_mode.to_s == "manual"
+
       raw["issue_ids"].to_s.split(/[\s,;]+/).map(&:to_i).reject(&:zero?)
     end
 
@@ -29,20 +49,12 @@ module RedmineCommentPdftopng
       raw["quality"].presence || "medium"
     end
 
-    def tool
-      raw["tool"].presence || "mini_magick"
-    end
-
     def thumbnail_max_px
       raw["thumbnail_max_px"].to_i
     end
 
-    def author_mode
-      raw["author_mode"].presence || "comment"
-    end
-
-    def fixed_user_id
-      raw["fixed_user_id"].to_i
+    def parse_identifier_list(value)
+      value.to_s.split(/[\s,;]+/).map { |s| s.to_s.strip }.reject(&:blank?)
     end
   end
 end

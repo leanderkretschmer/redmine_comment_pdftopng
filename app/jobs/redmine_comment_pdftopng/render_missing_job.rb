@@ -33,18 +33,23 @@ module RedmineCommentPdftopng
           .where(journal_details: { property: "attachment" })
           .distinct
 
-      project_ids = Settings.project_ids
-      issue_ids = Settings.issue_ids
-      return scope if project_ids.empty? && issue_ids.empty?
+      return scope if Settings.scope_mode.to_s != "manual"
 
-      if project_ids.any?
-        scope = scope.joins("INNER JOIN issues ON issues.id = journals.journalized_id")
+      project_identifiers = Settings.project_identifiers
+      issue_ids = Settings.issue_ids
+      return scope if project_identifiers.empty? && issue_ids.empty?
+
+      if project_identifiers.any?
+        scope =
+          scope
+            .joins("INNER JOIN issues ON issues.id = journals.journalized_id")
+            .joins("INNER JOIN projects ON projects.id = issues.project_id")
       end
 
-      if project_ids.any? && issue_ids.any?
-        scope.where("(issues.project_id IN (?) OR journals.journalized_id IN (?))", project_ids, issue_ids)
-      elsif project_ids.any?
-        scope.where("issues.project_id IN (?)", project_ids)
+      if project_identifiers.any? && issue_ids.any?
+        scope.where("(projects.identifier IN (?) OR journals.journalized_id IN (?))", project_identifiers, issue_ids)
+      elsif project_identifiers.any?
+        scope.where("projects.identifier IN (?)", project_identifiers)
       else
         scope.where(journalized_id: issue_ids)
       end

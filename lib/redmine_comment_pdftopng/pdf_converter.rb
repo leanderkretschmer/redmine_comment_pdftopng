@@ -12,12 +12,11 @@ module RedmineCommentPdftopng
       "original" => { density: 600, compression: 0, max_px: nil }
     }.freeze
 
-    def initialize(pdf_path:, render_mode:, quality:, thumbnail_max_px:, tool:)
+    def initialize(pdf_path:, render_mode:, quality:, thumbnail_max_px:)
       @pdf_path = pdf_path
       @render_mode = render_mode
       @quality = quality
       @thumbnail_max_px = thumbnail_max_px
-      @tool = tool
     end
 
     def convert
@@ -38,7 +37,6 @@ module RedmineCommentPdftopng
 
     def ensure_backend_loaded!
       require "mini_magick"
-      require "hexapdf" if @tool.to_s == "hexa_pdf"
     rescue LoadError => e
       raise "Abhängigkeit fehlt: #{e.message}"
     end
@@ -59,11 +57,7 @@ module RedmineCommentPdftopng
     end
 
     def convert_all_pages(tmp_dir)
-      if @tool.to_s == "hexa_pdf"
-        convert_all_pages_with_hexapdf(tmp_dir)
-      else
-        convert_all_pages_with_minimagick(tmp_dir)
-      end
+      convert_all_pages_with_minimagick(tmp_dir)
     end
 
     def convert_all_pages_with_minimagick(tmp_dir)
@@ -80,33 +74,6 @@ module RedmineCommentPdftopng
       end
 
       Dir.glob(File.join(tmp_dir, "page_*.png")).sort
-    end
-
-    def convert_all_pages_with_hexapdf(tmp_dir)
-      preset = QUALITY_PRESETS.fetch(@quality, QUALITY_PRESETS.fetch("medium"))
-      max_px = preset[:max_px]
-      pages = hexa_pdf_page_count
-      return [] if pages <= 0
-
-      (0...pages).map do |page_index|
-        out_path = File.join(tmp_dir, format("page_%03d.png", page_index + 1))
-
-        MiniMagick::Tool::Convert.new do |convert|
-          convert.density(preset[:density])
-          convert << "#{@pdf_path}[#{page_index}]"
-          apply_png_options(convert, preset: preset, max_px: max_px)
-          convert << out_path
-        end
-
-        out_path
-      end
-    end
-
-    def hexa_pdf_page_count
-      doc = HexaPDF::Document.open(@pdf_path)
-      doc.pages.count
-    ensure
-      doc&.close if doc.respond_to?(:close)
     end
 
     def apply_png_options(convert, preset:, max_px:)
