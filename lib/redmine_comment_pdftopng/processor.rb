@@ -216,7 +216,7 @@ module RedmineCommentPdftopng
 
       desc % { filename: filename, page: page_index, pages: page_count }
     rescue StandardError
-      "#{filename} Seite #{page_index}/#{page_count}"
+      "Seite #{page_index}/#{page_count} #{filename}"
     end
   end
 end
