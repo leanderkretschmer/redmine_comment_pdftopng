@@ -6,7 +6,7 @@ require "open3"
 module RedmineCommentPdftopng
   class PdfConverter
     LOG_PREFIX = "[PDF-PNG]".freeze
-    ConversionResult = Struct.new(:output_files, :tmp_dir, keyword_init: true)
+    ConversionResult = Struct.new(:output_files, :tmp_dir, :bytes_before, :bytes_after, :pngquant_used, keyword_init: true)
     MAGICK_LIMIT = "1GiB".freeze
 
     QUALITY_PRESETS = {
@@ -49,9 +49,17 @@ module RedmineCommentPdftopng
         end
 
       files = Array(output_files).select { |p| p.to_s.present? && File.exist?(p.to_s) }
-      maybe_pngquant_compress!(files)
+      bytes_before = total_size(files)
+      pngquant_used = maybe_pngquant_compress!(files)
+      bytes_after = total_size(files)
       success = true
-      ConversionResult.new(output_files: files, tmp_dir: tmp_dir)
+      ConversionResult.new(
+        output_files: files,
+        tmp_dir: tmp_dir,
+        bytes_before: bytes_before,
+        bytes_after: bytes_after,
+        pngquant_used: pngquant_used
+      )
     ensure
       FileUtils.remove_entry(tmp_dir) if !success && tmp_dir && File.directory?(tmp_dir)
     end
@@ -85,6 +93,7 @@ module RedmineCommentPdftopng
         FileUtils.rm_f(tmp_out) if tmp_out
         Rails.logger.warn("#{LOG_PREFIX} pngquant error file=#{path} #{e.class}: #{e.message}") if defined?(Rails)
       end
+      true
     end
 
     def self.pngquant_available?
@@ -94,6 +103,10 @@ module RedmineCommentPdftopng
       @pngquant_available = status.success?
     rescue StandardError
       @pngquant_available = false
+    end
+
+    def total_size(paths)
+      Array(paths).sum { |p| File.file?(p) ? File.size(p).to_i : 0 }
     end
 
     def convert_cover(tmp_dir)

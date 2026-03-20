@@ -47,3 +47,13 @@
                  formmethod: "post",
                  data: { confirm: l(:text_rcpp_render_missing_confirm) } %>
 </p>
+
+<fieldset class="box">
+  <legend><%= l(:label_rcpp_conversion_log) %></legend>
+  <% entries = RedmineCommentPdftopng::ConversionLog.entries(limit: 100) rescue [] %>
+  <% if entries.any? %>
+    <pre style="white-space: pre-wrap;"><%= entries.map { |e| "#{e[:at]} #{e[:message]}" }.join("\n") %></pre>
+  <% else %>
+    <em><%= l(:text_rcpp_conversion_log_empty) %></em>
+  <% end %>
+</fieldset>

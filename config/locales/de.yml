@@ -11,5 +11,7 @@ de:
   label_rcpp_thumbnail_max_px: "Thumbnail Max-Größe (px)"
   label_rcpp_page_max_px: "Seiten Max-Größe (px)"
   label_rcpp_png_description_template: "PNG-Beschreibung (Template, {filename}, {page}, {pages})"
+  label_rcpp_conversion_log: "Konvertierungs-Log"
   button_rcpp_render_missing: "Fehlende PDFs jetzt rendern"
   text_rcpp_render_missing_confirm: "Dies durchsucht den konfigurierten Bereich und konvertiert fehlende PDF-Kommentar-Anhänge. Fortfahren?"
+  text_rcpp_conversion_log_empty: "Noch keine Einträge."

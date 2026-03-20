@@ -89,6 +89,7 @@ module RedmineCommentPdftopng
           end
           png_attachments = attach_pngs(pdf_attachment, result.output_files)
           update_journal_notes(png_attachments) if png_attachments.any?
+          log_conversion(pdf_attachment, result)
           Rails.logger.info("#{LOG_PREFIX} done issue=#{@issue.id} pdf_attachment=#{pdf_attachment.id} pngs=#{png_attachments.size}")
         ensure
           tmp_dir = result.respond_to?(:tmp_dir) ? result.tmp_dir.to_s : ""
@@ -199,6 +200,25 @@ module RedmineCommentPdftopng
       base = File.basename(pdf_attachment.filename.to_s, File.extname(pdf_attachment.filename.to_s))
       safe_base = base.gsub(/[^\w.\- ]+/, "_").strip
       "#{safe_base}_a#{pdf_attachment.id}"
+    end
+
+    def log_conversion(pdf_attachment, result)
+      filename = pdf_attachment.filename.to_s
+      pages = result.respond_to?(:output_files) ? result.output_files.size.to_i : 0
+      bytes_before = result.respond_to?(:bytes_before) ? result.bytes_before.to_i : 0
+      bytes_after = result.respond_to?(:bytes_after) ? result.bytes_after.to_i : bytes_before
+      bytes_saved = bytes_before - bytes_after
+      bytes_saved = 0 if bytes_saved < 0
+
+      after_h = ConversionLog.format_bytes(bytes_after)
+      saved_h = ConversionLog.format_bytes(bytes_saved)
+      pngquant_used = result.respond_to?(:pngquant_used) ? !!result.pngquant_used : false
+      suffix = pngquant_used ? "" : ", pngquant missing"
+
+      message = "received #{filename} converted to #{pages} pages compressed to #{after_h} saved #{saved_h} (lossless compression size save#{suffix})"
+      ConversionLog.append(message)
+    rescue StandardError
+      nil
     end
 
     def png_description_for(pdf_attachment, page_index:, page_count:)
