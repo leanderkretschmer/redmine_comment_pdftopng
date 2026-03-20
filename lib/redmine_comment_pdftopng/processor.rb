@@ -216,6 +216,7 @@ module RedmineCommentPdftopng
       suffix = pngquant_used ? "" : ", pngquant missing"
 
       message = "received #{filename} converted to #{pages} pages compressed to #{after_h} saved #{saved_h} (lossless compression size save#{suffix})"
+      Rails.logger.info("#{LOG_PREFIX} #{message}") if defined?(Rails)
       ConversionLog.append(message)
     rescue StandardError
       nil

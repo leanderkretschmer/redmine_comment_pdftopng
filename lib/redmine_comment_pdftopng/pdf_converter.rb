@@ -13,7 +13,7 @@ module RedmineCommentPdftopng
       "low" => { density: 72, compression: 9, max_px: 900 },
       "medium" => { density: 150, compression: 6, max_px: 1600 },
       "high" => { density: 300, compression: 3, max_px: nil },
-      "original" => { density: 600, compression: 0, max_px: nil }
+      "original" => { density: 600, compression: 9, max_px: nil }
     }.freeze
 
     def initialize(pdf_path:, render_mode:, quality:, max_px:)
@@ -73,14 +73,20 @@ module RedmineCommentPdftopng
     end
 
     def maybe_pngquant_compress!(files)
-      return if files.empty?
-      return unless self.class.pngquant_available?
+      return false if files.empty?
 
       cmd = self.class.pngquant_cmd
+      available = self.class.pngquant_available?
+      unless available
+        Rails.logger.warn("#{LOG_PREFIX} pngquant not available (cmd=#{cmd})") if defined?(Rails)
+        return false
+      end
+
       files.each do |path|
         next unless File.file?(path)
 
         tmp_out = File.join(File.dirname(path), "pngquant_#{SecureRandom.hex(8)}.png")
+        # --quality 60-80 reduces size significantly, --speed 1 is best quality
         args = ["--force", "--skip-if-larger", "--strip", "--speed", "1", "--quality", "60-80", "--output", tmp_out, path]
 
         _stdout, stderr, status = Open3.capture3(cmd, *args)
@@ -88,7 +94,10 @@ module RedmineCommentPdftopng
           FileUtils.mv(tmp_out, path, force: true)
         else
           FileUtils.rm_f(tmp_out)
-          Rails.logger.warn("#{LOG_PREFIX} pngquant failed file=#{path} exit=#{status.exitstatus} err=#{stderr.to_s.strip}") if defined?(Rails)
+          # pngquant exit 99 = skip-if-larger or quality below min, which is fine
+          if status.exitstatus != 99
+            Rails.logger.warn("#{LOG_PREFIX} pngquant failed file=#{path} exit=#{status.exitstatus} err=#{stderr.to_s.strip}") if defined?(Rails)
+          end
         end
       rescue StandardError => e
         FileUtils.rm_f(tmp_out) if tmp_out
@@ -107,15 +116,17 @@ module RedmineCommentPdftopng
 
     def self.pngquant_available?
       cmd = pngquant_cmd
-      @pngquant_available_by_cmd ||= {}
-      cached = @pngquant_available_by_cmd[cmd]
-      return cached unless cached.nil?
+      # Use a simple cache but re-check if the command string changed
+      @pngquant_cache ||= {}
+      return @pngquant_cache[cmd] unless @pngquant_cache[cmd].nil?
 
+      # Basic check if command exists
       _stdout, _stderr, status = Open3.capture3(cmd, "--version")
-      @pngquant_available_by_cmd[cmd] = status.success?
-    rescue StandardError
-      @pngquant_available_by_cmd ||= {}
-      @pngquant_available_by_cmd[cmd] = false
+      @pngquant_cache[cmd] = status.success?
+    rescue StandardError => e
+      Rails.logger.warn("#{LOG_PREFIX} pngquant_available? error for '#{cmd}': #{e.message}") if defined?(Rails)
+      @pngquant_cache ||= {}
+      @pngquant_cache[cmd] = false
     end
 
     def self.pngquant_version
