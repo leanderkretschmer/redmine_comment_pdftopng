@@ -124,6 +124,7 @@ module RedmineCommentPdftopng
 
       existing = @issue.attachments.to_a.index_by(&:filename)
       page_count = Settings.render_mode == "all_pages" ? png_paths.size : 1
+      page_count = 1 if page_count <= 0
 
       png_paths.zip(desired_filenames).each_with_index do |(png_path, filename), idx|
         next if existing.key?(filename)

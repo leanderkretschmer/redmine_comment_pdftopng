@@ -1,6 +1,7 @@
 require "securerandom"
 require "tmpdir"
 require "fileutils"
+require "open3"
 
 module RedmineCommentPdftopng
   class PdfConverter
@@ -48,6 +49,7 @@ module RedmineCommentPdftopng
         end
 
       files = Array(output_files).select { |p| p.to_s.present? && File.exist?(p.to_s) }
+      maybe_pngquant_compress!(files)
       success = true
       ConversionResult.new(output_files: files, tmp_dir: tmp_dir)
     ensure
@@ -60,6 +62,38 @@ module RedmineCommentPdftopng
       require "mini_magick"
     rescue LoadError => e
       raise "Abhängigkeit fehlt: #{e.message}"
+    end
+
+    def maybe_pngquant_compress!(files)
+      return if files.empty?
+      return unless self.class.pngquant_available?
+
+      files.each do |path|
+        next unless File.file?(path)
+
+        tmp_out = File.join(File.dirname(path), "pngquant_#{SecureRandom.hex(8)}.png")
+        args = ["--force", "--skip-if-larger", "--strip", "--speed", "1", "--quality", "60-80", "--output", tmp_out, path]
+
+        _stdout, stderr, status = Open3.capture3("pngquant", *args)
+        if status.success? && File.file?(tmp_out)
+          FileUtils.mv(tmp_out, path, force: true)
+        else
+          FileUtils.rm_f(tmp_out)
+          Rails.logger.warn("#{LOG_PREFIX} pngquant failed file=#{path} exit=#{status.exitstatus} err=#{stderr.to_s.strip}") if defined?(Rails)
+        end
+      rescue StandardError => e
+        FileUtils.rm_f(tmp_out) if tmp_out
+        Rails.logger.warn("#{LOG_PREFIX} pngquant error file=#{path} #{e.class}: #{e.message}") if defined?(Rails)
+      end
+    end
+
+    def self.pngquant_available?
+      return @pngquant_available unless @pngquant_available.nil?
+
+      _stdout, _stderr, status = Open3.capture3("pngquant", "--version")
+      @pngquant_available = status.success?
+    rescue StandardError
+      @pngquant_available = false
     end
 
     def convert_cover(tmp_dir)

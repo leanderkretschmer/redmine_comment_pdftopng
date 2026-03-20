@@ -10,6 +10,6 @@ en:
   label_rcpp_render_all_pages: "Every page as PNG"
   label_rcpp_thumbnail_max_px: "Thumbnail max size (px)"
   label_rcpp_page_max_px: "Page max size (px)"
-  label_rcpp_png_description_template: "PNG description (template, {filename} {page}/{pages})"
+  label_rcpp_png_description_template: "PNG description (template, {filename}, {page}, {pages})"
   button_rcpp_render_missing: "Render missing PDFs now"
   text_rcpp_render_missing_confirm: "This will scan the configured scope and convert missing PDF comment attachments. Continue?"
