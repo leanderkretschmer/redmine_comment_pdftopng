@@ -76,13 +76,14 @@ module RedmineCommentPdftopng
       return if files.empty?
       return unless self.class.pngquant_available?
 
+      cmd = self.class.pngquant_cmd
       files.each do |path|
         next unless File.file?(path)
 
         tmp_out = File.join(File.dirname(path), "pngquant_#{SecureRandom.hex(8)}.png")
         args = ["--force", "--skip-if-larger", "--strip", "--speed", "1", "--quality", "60-80", "--output", tmp_out, path]
 
-        _stdout, stderr, status = Open3.capture3("pngquant", *args)
+        _stdout, stderr, status = Open3.capture3(cmd, *args)
         if status.success? && File.file?(tmp_out)
           FileUtils.mv(tmp_out, path, force: true)
         else
@@ -96,13 +97,37 @@ module RedmineCommentPdftopng
       true
     end
 
-    def self.pngquant_available?
-      return @pngquant_available unless @pngquant_available.nil?
+    def self.pngquant_cmd
+      if defined?(Settings) && Settings.respond_to?(:pngquant_path)
+        Settings.pngquant_path.to_s.presence || "pngquant"
+      else
+        "pngquant"
+      end
+    end
 
-      _stdout, _stderr, status = Open3.capture3("pngquant", "--version")
-      @pngquant_available = status.success?
+    def self.pngquant_available?
+      cmd = pngquant_cmd
+      @pngquant_available_by_cmd ||= {}
+      cached = @pngquant_available_by_cmd[cmd]
+      return cached unless cached.nil?
+
+      _stdout, _stderr, status = Open3.capture3(cmd, "--version")
+      @pngquant_available_by_cmd[cmd] = status.success?
     rescue StandardError
-      @pngquant_available = false
+      @pngquant_available_by_cmd ||= {}
+      @pngquant_available_by_cmd[cmd] = false
+    end
+
+    def self.pngquant_version
+      cmd = pngquant_cmd
+      stdout, stderr, status = Open3.capture3(cmd, "--version")
+      return nil unless status.success?
+
+      v = stdout.to_s.strip
+      v = stderr.to_s.strip if v.blank?
+      v.presence
+    rescue StandardError
+      nil
     end
 
     def total_size(paths)

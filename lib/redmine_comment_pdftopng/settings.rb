@@ -65,6 +65,10 @@ module RedmineCommentPdftopng
       template.presence || "Seite {page}/{pages} {filename}"
     end
 
+    def pngquant_path
+      raw["pngquant_path"].presence || "pngquant"
+    end
+
     def parse_identifier_list(value)
       value.to_s.split(/[\s,;]+/).map { |s| s.to_s.strip }.reject(&:blank?)
     end

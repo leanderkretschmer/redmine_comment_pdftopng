@@ -41,6 +41,15 @@
 </p>
 
 <p>
+  <label><%= l(:label_rcpp_pngquant_path) %></label>
+  <%= text_field_tag "settings[pngquant_path]", settings["pngquant_path"].to_s, size: 80 %>
+  <% cmd = RedmineCommentPdftopng::Settings.pngquant_path rescue "pngquant" %>
+  <% version = RedmineCommentPdftopng::PdfConverter.pngquant_version rescue nil %>
+  <% available = RedmineCommentPdftopng::PdfConverter.pngquant_available? rescue false %>
+  <em><%= available ? "#{l(:text_rcpp_pngquant_found)} (#{cmd}#{version.present? ? ", #{version}" : ""})" : "#{l(:text_rcpp_pngquant_missing)} (#{cmd})" %></em>
+</p>
+
+<p>
   <%= button_tag l(:button_rcpp_render_missing),
                  type: "submit",
                  formaction: url_for(controller: "redmine_comment_pdftopng", action: "render_missing"),

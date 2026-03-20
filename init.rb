@@ -20,6 +20,7 @@ Redmine::Plugin.register :redmine_comment_pdftopng do
     "render_mode" => "cover",
     "thumbnail_max_px" => "900",
     "page_max_px" => "2500",
-    "png_description_template" => "Seite %{page}/%{pages} %{filename}"
+    "png_description_template" => "Seite %{page}/%{pages} %{filename}",
+    "pngquant_path" => "pngquant"
   }, partial: "settings/redmine_comment_pdftopng_settings"
 end
