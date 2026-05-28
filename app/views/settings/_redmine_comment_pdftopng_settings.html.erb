@@ -21,6 +21,12 @@
 <% end %>
 
 <p>
+  <label><%= l(:label_rcpp_preview_hidden_issue_ids) %></label>
+  <%= text_field_tag "settings[preview_hidden_issue_ids]", settings["preview_hidden_issue_ids"].to_s, size: 80 %>
+  <em><%= l(:text_rcpp_preview_hidden_issue_ids_hint) %></em>
+</p>
+
+<p>
   <label><%= l(:label_rcpp_render_mode) %></label>
   <%= select_tag "settings[render_mode]", options_for_select([[l(:label_rcpp_render_cover), "cover"], [l(:label_rcpp_render_all_pages), "all_pages"]], settings["render_mode"].presence || "cover") %>
 </p>

@@ -5,6 +5,8 @@ en:
   label_rcpp_scope_manual: "Manual (only these projects/tickets)"
   label_rcpp_project_identifiers: "Project identifiers (comma/space separated)"
   label_rcpp_issue_ids: "Ticket IDs (comma/space separated)"
+  label_rcpp_preview_hidden_issue_ids: "Hide preview in tickets (comma/space separated)"
+  text_rcpp_preview_hidden_issue_ids_hint: "In these tickets PNGs are still created and attached, but the inline preview (!file.png!) is not written into the comment."
   label_rcpp_render_mode: "What should be generated?"
   label_rcpp_render_cover: "Only cover image (thumbnail)"
   label_rcpp_render_all_pages: "Every page as PNG"

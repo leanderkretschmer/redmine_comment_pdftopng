@@ -182,6 +182,11 @@ module RedmineCommentPdftopng
     end
 
     def update_journal_notes(png_attachments)
+      if Settings.preview_hidden_for?(@issue.id)
+        Rails.logger.info("#{LOG_PREFIX} preview hidden for issue=#{@issue.id}, skipping inline markup")
+        return
+      end
+
       escaped_markups =
         png_attachments.map do |a|
           escaped = a.filename.to_s.gsub(" ", "%20")
