@@ -1,7 +1,9 @@
 require_relative "redmine_comment_pdftopng/settings"
+require_relative "redmine_comment_pdftopng/note_markup"
 require_relative "redmine_comment_pdftopng/pdf_converter"
 require_relative "redmine_comment_pdftopng/processor"
 require_relative "redmine_comment_pdftopng/journal_patch"
+require_relative "redmine_comment_pdftopng/journal_detail_patch"
 require "time"
 
 module RedmineCommentPdftopng
