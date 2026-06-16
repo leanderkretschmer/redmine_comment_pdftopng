@@ -49,6 +49,14 @@ module RedmineCommentPdftopng
       preview_hidden_issue_ids.include?(issue_id.to_i)
     end
 
+    def conversion_disabled_issue_ids
+      raw["conversion_disabled_issue_ids"].to_s.split(/[\s,;]+/).map(&:to_i).reject(&:zero?)
+    end
+
+    def conversion_disabled_for?(issue_id)
+      conversion_disabled_issue_ids.include?(issue_id.to_i)
+    end
+
     def render_mode
       raw["render_mode"].presence || "cover"
     end

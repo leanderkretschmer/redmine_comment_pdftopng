@@ -10,6 +10,10 @@ module RedmineCommentPdftopng
 
     def call
       return unless Settings.enabled?
+      if @issue && Settings.conversion_disabled_for?(@issue.id)
+        Rails.logger.info("#{LOG_PREFIX} skip issue=#{@issue.id} reason=conversion_disabled_issue_ids")
+        return
+      end
       return unless eligible_scope?
 
       pdf_attachments.each do |pdf|
