@@ -78,3 +78,54 @@
     <em><%= l(:text_rcpp_conversion_log_empty) %></em>
   <% end %>
 </fieldset>
+
+<fieldset class="box" style="border: 2px solid #b00; background: #fff4f4;">
+  <legend style="color: #b00; font-weight: bold;">⚠ <%= l(:label_rcpp_dev_tools) %></legend>
+  <p style="color: #b00; font-weight: bold;"><%= l(:text_rcpp_dev_tools_warning) %></p>
+  <p>
+    <label><%= l(:label_rcpp_dev_tools_enabled) %></label>
+    <%= check_box_tag "settings[dev_tools_enabled]", "1", settings["dev_tools_enabled"].to_s == "1" %>
+    <em><%= l(:text_rcpp_dev_tools_enabled_hint) %></em>
+  </p>
+
+  <% if settings["dev_tools_enabled"].to_s == "1" %>
+    <hr>
+    <% scan = (Rails.cache.read(RedmineCommentPdftopngController::SCAN_CACHE_KEY) rescue nil) %>
+    <p>
+      <label for="rcpp_dev_issue_id"><%= l(:label_rcpp_dev_issue_id) %></label>
+      <%= text_field_tag "issue_id", scan&.dig(:issue_id), size: 8, id: "rcpp_dev_issue_id" %>
+      <%= button_tag l(:button_rcpp_dev_scan),
+                     type: "submit",
+                     formaction: url_for(controller: "redmine_comment_pdftopng", action: "scan_issue"),
+                     formmethod: "post" %>
+      <%= button_tag l(:button_rcpp_dev_purge),
+                     type: "submit",
+                     formaction: url_for(controller: "redmine_comment_pdftopng", action: "purge_issue_pngs"),
+                     formmethod: "post",
+                     style: "color: #b00; font-weight: bold;",
+                     data: { confirm: l(:text_rcpp_dev_purge_confirm) } %>
+    </p>
+
+    <% if scan %>
+      <fieldset>
+        <legend><%= l(:label_rcpp_dev_last_result) %> — #<%= scan[:issue_id] %>: <%= scan[:issue_subject] %></legend>
+        <p>
+          <strong><%= l(:label_rcpp_dev_pdf_count) %>:</strong> <%= scan[:pdf_count] %><br>
+          <strong><%= l(:label_rcpp_dev_png_count) %>:</strong> <%= scan[:png_count] %><br>
+          <% if scan[:last_purge_destroyed] %>
+            <strong style="color: #b00;"><%= l(:label_rcpp_dev_last_purge) %>:</strong> <%= scan[:last_purge_destroyed] %><br>
+          <% end %>
+          <em><%= l(:label_rcpp_dev_scanned_at) %>: <%= scan[:scanned_at] %></em>
+        </p>
+        <% if scan[:pdf_filenames].present? %>
+          <p><strong><%= l(:label_rcpp_dev_pdf_files) %>:</strong></p>
+          <ul><% scan[:pdf_filenames].each do |fn| %><li><%= fn %></li><% end %></ul>
+        <% end %>
+        <% if scan[:png_filenames].present? %>
+          <p><strong><%= l(:label_rcpp_dev_png_files) %>:</strong></p>
+          <ul><% scan[:png_filenames].each do |fn| %><li><%= fn %></li><% end %></ul>
+        <% end %>
+      </fieldset>
+    <% end %>
+  <% end %>
+</fieldset>

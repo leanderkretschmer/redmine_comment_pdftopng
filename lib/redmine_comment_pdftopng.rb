@@ -5,6 +5,7 @@ require_relative "redmine_comment_pdftopng/processor"
 require_relative "redmine_comment_pdftopng/journal_patch"
 require_relative "redmine_comment_pdftopng/journal_detail_patch"
 require_relative "redmine_comment_pdftopng/move_comments_hook_listener"
+require_relative "redmine_comment_pdftopng/projects_hook_listener"
 require "time"
 
 module RedmineCommentPdftopng

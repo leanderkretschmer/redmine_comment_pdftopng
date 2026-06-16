@@ -57,6 +57,45 @@ module RedmineCommentPdftopng
       conversion_disabled_issue_ids.include?(issue_id.to_i)
     end
 
+    def per_project_conversion_disabled_map
+      value = raw["per_project_conversion_disabled"]
+      value.is_a?(Hash) ? value : {}
+    end
+
+    def per_project_conversion_disabled_raw(project_id)
+      per_project_conversion_disabled_map[project_id.to_s].to_s
+    end
+
+    def per_project_conversion_disabled_ids(project_id)
+      per_project_conversion_disabled_raw(project_id).split(/[\s,;]+/).map(&:to_i).reject(&:zero?)
+    end
+
+    def store_per_project_conversion_disabled(project_id, raw_value)
+      all = per_project_conversion_disabled_map.dup
+      key = project_id.to_s
+      cleaned = raw_value.to_s.strip
+      if cleaned.empty?
+        all.delete(key)
+      else
+        all[key] = cleaned
+      end
+      setting = (Setting.plugin_redmine_comment_pdftopng || {}).dup
+      setting["per_project_conversion_disabled"] = all
+      Setting.plugin_redmine_comment_pdftopng = setting
+    end
+
+    def conversion_disabled_for_issue?(issue)
+      return false unless issue
+      return true if conversion_disabled_issue_ids.include?(issue.id.to_i)
+      return false unless issue.respond_to?(:project) && issue.project
+      return false unless issue.project.respond_to?(:module_enabled?) && issue.project.module_enabled?(:pdftopng)
+      per_project_conversion_disabled_ids(issue.project.id).include?(issue.id.to_i)
+    end
+
+    def dev_tools_enabled?
+      raw["dev_tools_enabled"].to_s == "1"
+    end
+
     def render_mode
       raw["render_mode"].presence || "cover"
     end

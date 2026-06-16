@@ -1,0 +1,8 @@
+<fieldset class="box tabular">
+  <legend><%= l(:label_rcpp_project_module_section) %></legend>
+  <p>
+    <label for="pdftopng_disabled_issue_ids"><%= l(:label_rcpp_project_disabled_issue_ids) %></label>
+    <%= text_field_tag "pdftopng_disabled_issue_ids", current.to_s, size: 60 %>
+    <em class="info"><%= l(:text_rcpp_project_disabled_issue_ids_hint) %></em>
+  </p>
+</fieldset>
