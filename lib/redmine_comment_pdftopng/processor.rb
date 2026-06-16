@@ -10,6 +10,10 @@ module RedmineCommentPdftopng
 
     def call
       return unless Settings.enabled?
+      if @issue && Settings.conversion_disabled_for?(@issue.id)
+        Rails.logger.info("#{LOG_PREFIX} skip issue=#{@issue.id} reason=conversion_disabled_issue_ids")
+        return
+      end
       return unless eligible_scope?
 
       pdf_attachments.each do |pdf|
@@ -65,7 +69,7 @@ module RedmineCommentPdftopng
 
       existing_pngs = existing_png_attachments(pdf_attachment)
       if existing_pngs.any?
-        update_journal_notes(existing_pngs)
+        ensure_journal_details(existing_pngs)
         Rails.logger.info("#{LOG_PREFIX} reuse issue=#{@issue.id} pdf_attachment=#{pdf_attachment.id} pngs=#{existing_pngs.size}")
         return
       end
@@ -88,7 +92,7 @@ module RedmineCommentPdftopng
             raise "converter produced no files"
           end
           png_attachments = attach_pngs(pdf_attachment, result.output_files)
-          update_journal_notes(png_attachments) if png_attachments.any?
+          ensure_journal_details(png_attachments) if png_attachments.any?
           log_conversion(pdf_attachment, result)
           Rails.logger.info("#{LOG_PREFIX} done issue=#{@issue.id} pdf_attachment=#{pdf_attachment.id} pngs=#{png_attachments.size}")
         ensure
@@ -181,19 +185,32 @@ module RedmineCommentPdftopng
       nil
     end
 
-    def update_journal_notes(png_attachments)
-      escaped_markups =
-        png_attachments.map do |a|
-          escaped = a.filename.to_s.gsub(" ", "%20")
-          "!#{escaped}!"
-        end
+    # Links the generated PNGs to the comment as attachment journal details so
+    # they belong to the comment (and travel with it when moved via
+    # redmine_move_comments). Creating the detail triggers the JournalDetail
+    # after_commit hook which (re)builds the inline preview markup unless the
+    # issue is in the hidden list.
+    def ensure_journal_details(png_attachments)
+      return if png_attachments.blank?
 
-      notes = @journal.notes.to_s
-      additions = escaped_markups.reject { |m| notes.include?(m) }
-      return if additions.empty?
+      existing_ids =
+        JournalDetail
+          .where(journal_id: @journal.id, property: "attachment")
+          .pluck(:prop_key)
+          .map(&:to_i)
 
-      @journal.notes = notes + "\n\n" + additions.join("\n")
-      @journal.save
+      png_attachments.each do |attachment|
+        next if existing_ids.include?(attachment.id)
+
+        JournalDetail.create(
+          journal: @journal,
+          property: "attachment",
+          prop_key: attachment.id.to_s,
+          value: attachment.filename.to_s
+        )
+      end
+    rescue StandardError => e
+      Rails.logger.error("#{LOG_PREFIX} journal detail link failed journal=#{@journal&.id} #{e.class}: #{e.message}")
     end
 
     def base_key_for(pdf_attachment)
