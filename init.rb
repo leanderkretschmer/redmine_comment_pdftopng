@@ -6,7 +6,7 @@ Redmine::Plugin.register :redmine_comment_pdftopng do
   name "Redmine Comment PDF to PNG"
   author "Leander Kretschmer"
   description "Converts PDF attachments in Redmine comments to PNG images."
-  version "1.0.5"
+  version "1.0.6"
   url 'https://github.com/leanderkretschmer/redmine_comment_pdftopng'
   author_url "https://github.com/leanderkretschmer/"
   
